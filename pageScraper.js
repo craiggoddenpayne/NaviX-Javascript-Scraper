@@ -1,4 +1,4 @@
-(function ($) {
+﻿(function ($) {
     function pageScraper() { };
     pageScraper.prototype.scrapePage = function (url, callback) {
         ///<param name="url" type="string">Url to get html object from</param>

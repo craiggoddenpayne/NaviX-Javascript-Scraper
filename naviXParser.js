@@ -1,157 +1,44 @@
-function NaviXParser() { };
+﻿function NaviXParser() {
+    NaviXParser.prototype.common = new NaviXCommon();
+};
 NaviXParser.prototype.NaviX = function (naviXUrl, backUrl) {
-
+    var naviX = this;
     $().scrapePage(naviXUrl, function (data) {
         var splx = data.html.body.p;
-        var plx = Plx.prototype.Parse(splx);
-
-        var html = "";
-        //create html variant of playlist
-        for (var i = 0; i < plx.length; i++) {
-            if (plx[i].Background) {
-                $("NaviX").style("background-url", plx[i].Background);
-            }
-
-            if (plx[i].Type == "window" || plx[i].Type == "directory") continue;
-
-            //Thumb Exists, does not start with default and contains http
-            if (plx[i].Thumb && plx[i].Thumb.indexOf("default") != 0 && plx[i].Thumb.contains("http")) {
-                html += '<img src="' + plx[i].Thumb + '" width="32" height="32" />';
-            }
-            if (plx[i].Url && plx[i].Url.indexOf("http") == 0) {
-                if (plx[i].Type == "video") {
-                    html += '<a href="' + plx[i].Url + '" target="_blank">' + plx[i].Name + '</a><br/>';
-                } else {
-                    html += '<a href="javascript:NaviXParser.prototype.NaviX(\'' + plx[i].Url + '\', \'' + naviXUrl + '\')">' + plx[i].Name + '</a><br/>';   
-                }
-            } else {
-                html += plx[i].Name + "<br/>";
-            }
-        }
-
-        if (backUrl)
-            html += '<a href="javascript:NaviXParser.prototype.NaviX(\'' + backUrl + '\')">BACK</a><br/>';
-        $("#NaviX").html(html);
-        location.hash = new Date().getMilliseconds();
+        var plx = new Plx();
+        plx.Parse(splx);
+        naviX.WriteViewTo($("#NaviX"), plx.Value, naviXUrl, backUrl);
     });
 };
+NaviXParser.prototype.WriteViewTo = function(div, plx, naviXUrl, backUrl) {
+    var html = "";
+    //create html variant of playlist
+    for (var i = 0; i < plx.length; i++) {
+        if (plx[i].Background) {
+            $("NaviX").style("background-url", plx[i].Background);
+        }
 
+        if (plx[i].Type == "window" || plx[i].Type == "directory") continue;
 
-function Plx() { };
-Plx.prototype = {
-    Value: null,
-    Parse: function (data) {
-
-        var indexes = getIndicesOf("type=", data, false);
-        var sections = [];
-        for (var i = 0; i < indexes.length; i++) {
-            if (indexes[i + 1] != null) {
-                sections[i] = data.substr(indexes[i], indexes[i + 1] - indexes[i]);
-            } else { //Get the last index of
-                sections[i] = data.substr(indexes[i]);
+        //Thumb Exists, does not start with default and contains http
+        if (plx[i].Thumb && plx[i].Thumb.indexOf("default") != 0 && plx[i].Thumb.contains("http")) {
+            html += '<img src="' + plx[i].Thumb + '" width="32" height="32" />';
+        }
+        if (plx[i].Url && plx[i].Url.indexOf("http") == 0) {
+            if (plx[i].Type == "video") {
+                html += '<a href="' + plx[i].Url + '" target="_blank">' + plx[i].Name + '</a><br/>';
+            } else {
+                html += '<a href="javascript:NaviXParser.prototype.NaviX(\'' + plx[i].Url + '\', \'' + naviXUrl + '\')">' + plx[i].Name + '</a><br/>';
             }
+        } else {
+            html += plx[i].Name + "<br/>";
         }
+    }
 
-        var plxHeaders = [];
-        for (var i = 0; i < sections.length; i++) {
-            var headerLocations = [];
-
-            $(["type",
-                "name",
-                "icon",
-                "description",
-                "thumb",
-                "date",
-                "view",
-                "url",
-                "player",
-                "rating",
-                "version",
-                "background",
-                "processor"])
-                .each(function (aindex, header) {
-                    var indicies = getIndicesOf(header + "=", sections[i], false);
-                    var indiciesRem = getIndicesOf("#" + header + "=", sections[i], false);
-                    $(indicies).each(function (bindex, indecie) {
-                        headerLocations.push(indecie);
-                    });
-                    $(indiciesRem).each(function (bindex, indecie) {
-                        headerLocations.push(indecie);
-                    });
-                    headerLocations.sort(sortNumber);
-                });
-
-            plxHeaders[i] = headerLocations;
-        }
-
-        var plxPart = [];
-        for (var a = 0; a < plxHeaders.length; a++) {
-            plxPart[a] = [];
-            for (var b = 0; b < plxHeaders[a].length; b++) {
-                if (plxHeaders[a][b + 1] != null) {
-                    plxPart[a][b] = sections[a].substr(plxHeaders[a][b], plxHeaders[a][b + 1] - plxHeaders[a][b]);
-                } else { //Get the last index of
-                    plxPart[a][b] = sections[a].substr(plxHeaders[a][b]).trim();
-                }
-            }
-        }
-
-        var playlists = [];
-        for (var i = 0; i < plxPart.length; i++) {
-            playlists[i] = new Playlist();
-            for (var a = 0; a < plxPart[i].length; a++) {
-                var line = plxPart[i][a].toLowerCase().trim();
-                if (line[0] != "#") {
-                    var seperator = line.indexOf("=");
-                    var type = line.substr(0, seperator);
-                    if (!type)
-                        continue;
-                    type = (type[0].toUpperCase() + type.substr(1, type.length));
-
-                    if (type == "url") { //urls cannot contain spaces
-                        var link = plxPart[i][a].substr(type.length + 1, plxPart[i][a].length - type.length).trim();
-                        link = link.substr(0, link.indexOf(" "));
-                        playlists[i][type] = link;
-                    } else {
-                        playlists[i][type] = plxPart[i][a].substr(type.length + 1, plxPart[i][a].length - type.length).trim();
-                    }
-                }
-            }
-        }
-
-        return playlists;
-    },
+    if (backUrl)
+        html += '<a href="javascript:NaviXParser.prototype.NaviX(\'' + backUrl + '\')">BACK</a><br/>';
+    div.html(html);
+    location.hash = new Date().getMilliseconds();
 };
 
-function Playlist() { }
-Playlist.prototype.Name = null;
-Playlist.prototype.Type = null;
-Playlist.prototype.Description = null;
-Playlist.prototype.Thumb = null;
-Playlist.prototype.Date = null;
-Playlist.prototype.Url = null;
-Playlist.prototype.Icon = null;
-Playlist.prototype.Rating = null;
-Playlist.prototype.Player = null;
-Playlist.prototype.Version = null;
-Playlist.prototype.Background = null;
-Playlist.prototype.Processor = null;
 
-
-function getIndicesOf(searchStr, str, caseSensitive) {
-    var startIndex = 0, searchStrLen = searchStr.length;
-    var index, indices = [];
-    if (!caseSensitive) {
-        str = str.toLowerCase();
-        searchStr = searchStr.toLowerCase();
-    }
-    while ((index = str.indexOf(searchStr, startIndex)) > -1) {
-        indices.push(index);
-        startIndex = index + searchStrLen;
-    }
-    return indices.sort(sortNumber);
-}
-
-function sortNumber(a, b) {
-    return a - b;
-}
