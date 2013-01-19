@@ -1,0 +1,19 @@
+﻿<html>
+    <head>
+        <title>NaviX Parser</title>
+        <script type="text/javascript" src="http://code.jquery.com/jquery-1.9.0.min.js"></script>
+        <script type="text/javascript" src="pageScraper.js"></script>
+        <script type="text/javascript" src="naviXParser.js"></script>
+    </head>
+    <body>
+        <script type="text/javascript">
+            $().ready(function () {
+                var naviXUrl = "http://navi-x.googlecode.com/svn/trunk/Playlists/home.plx";
+                var naviX = new NaviXParser();
+                naviX.NaviX(naviXUrl);
+            });
+        </script>
+        <div id="NaviX">
+        </div>
+    </body>
+</html>
