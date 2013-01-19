@@ -1,4 +1,4 @@
-﻿function NaviXParser() { };
+function NaviXParser() { };
 NaviXParser.prototype.NaviX = function (naviXUrl, backUrl) {
 
     $().scrapePage(naviXUrl, function (data) {
@@ -8,22 +8,31 @@ NaviXParser.prototype.NaviX = function (naviXUrl, backUrl) {
         var html = "";
         //create html variant of playlist
         for (var i = 0; i < plx.length; i++) {
+            if (plx[i].Background) {
+                $("NaviX").style("background-url", plx[i].Background);
+            }
+
             if (plx[i].Type == "window" || plx[i].Type == "directory") continue;
 
             //Thumb Exists, does not start with default and contains http
-            if (plx[i].Thumb && plx[i].Thumb[0] != "d" && plx[i].Thumb.contains("http")) {
+            if (plx[i].Thumb && plx[i].Thumb.indexOf("default") != 0 && plx[i].Thumb.contains("http")) {
                 html += '<img src="' + plx[i].Thumb + '" width="32" height="32" />';
             }
-            if (plx[i].Url) {
-                html += '<a href="javascript:NaviXParser.prototype.NaviX(\'' + plx[i].Url + '\', \''+ naviXUrl + '\')">' + plx[i].Name + '</a><br/>';
+            if (plx[i].Url && plx[i].Url.indexOf("http") == 0) {
+                if (plx[i].Type == "video") {
+                    html += '<a href="' + plx[i].Url + '" target="_blank">' + plx[i].Name + '</a><br/>';
+                } else {
+                    html += '<a href="javascript:NaviXParser.prototype.NaviX(\'' + plx[i].Url + '\', \'' + naviXUrl + '\')">' + plx[i].Name + '</a><br/>';   
+                }
             } else {
                 html += plx[i].Name + "<br/>";
             }
         }
-        
-        if(backUrl)
+
+        if (backUrl)
             html += '<a href="javascript:NaviXParser.prototype.NaviX(\'' + backUrl + '\')">BACK</a><br/>';
         $("#NaviX").html(html);
+        location.hash = new Date().getMilliseconds();
     });
 };
 
@@ -47,11 +56,29 @@ Plx.prototype = {
         for (var i = 0; i < sections.length; i++) {
             var headerLocations = [];
 
-            $(["type=", "name=", "icon=", "description=", "thumb=", "date=", "view=", "url=", "player=", "rating=", "version="])
+            $(["type",
+                "name",
+                "icon",
+                "description",
+                "thumb",
+                "date",
+                "view",
+                "url",
+                "player",
+                "rating",
+                "version",
+                "background",
+                "processor"])
                 .each(function (aindex, header) {
-                    $(getIndicesOf(header, sections[i], false)).each(function (bindex, indecie) {
+                    var indicies = getIndicesOf(header + "=", sections[i], false);
+                    var indiciesRem = getIndicesOf("#" + header + "=", sections[i], false);
+                    $(indicies).each(function (bindex, indecie) {
                         headerLocations.push(indecie);
                     });
+                    $(indiciesRem).each(function (bindex, indecie) {
+                        headerLocations.push(indecie);
+                    });
+                    headerLocations.sort(sortNumber);
                 });
 
             plxHeaders[i] = headerLocations;
@@ -80,7 +107,14 @@ Plx.prototype = {
                     if (!type)
                         continue;
                     type = (type[0].toUpperCase() + type.substr(1, type.length));
-                    playlists[i][type] = plxPart[i][a].substr(type.length+1, plxPart[i][a].length - type.length).trim();
+
+                    if (type == "url") { //urls cannot contain spaces
+                        var link = plxPart[i][a].substr(type.length + 1, plxPart[i][a].length - type.length).trim();
+                        link = link.substr(0, link.indexOf(" "));
+                        playlists[i][type] = link;
+                    } else {
+                        playlists[i][type] = plxPart[i][a].substr(type.length + 1, plxPart[i][a].length - type.length).trim();
+                    }
                 }
             }
         }
@@ -100,6 +134,8 @@ Playlist.prototype.Icon = null;
 Playlist.prototype.Rating = null;
 Playlist.prototype.Player = null;
 Playlist.prototype.Version = null;
+Playlist.prototype.Background = null;
+Playlist.prototype.Processor = null;
 
 
 function getIndicesOf(searchStr, str, caseSensitive) {
