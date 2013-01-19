@@ -1,9 +1,9 @@
-﻿(function ($) {
+(function ($) {
     function pageScraper() { };
     pageScraper.prototype.scrapePage = function (url, callback) {
         ///<param name="url" type="string">Url to get html object from</param>
         ///<param name="callback">Callback, which returns one parameter, data or null if failure</param>
-        var encodedUrl = "http://query.yahooapis.com/v1/public/yql?q=" + encodeURI('select * from html where url="' + url + '" and xpath="*"') + "&format=json";
+        var encodedUrl = "http://query.yahooapis.com/v1/public/yql?q=" + encodeURI('select * from html where url="' + encodeURI(url) + '" and xpath="*"') + "&format=json";
         $.ajax({
             url: encodedUrl,
             dataType: 'jsonp',
